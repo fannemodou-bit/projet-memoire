@@ -1,0 +1,1441 @@
+\documentclass[aspectratio=169, 9pt]{beamer}
+
+% ── Thème et couleurs ────────────────────────────────────────
+\usetheme{Madrid}
+\usecolortheme{whale}
+\usepackage[french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{adjustbox}
+\usetikzlibrary{shapes, arrows, positioning,
+                decorations.pathreplacing}
+
+% ── Couleurs personnalisées ──────────────────────────────────
+\definecolor{ugbblue}{RGB}{0, 51, 102}
+\definecolor{ugbgold}{RGB}{204, 153, 0}
+\definecolor{lightblue}{RGB}{173, 216, 230}
+\definecolor{lightgold}{RGB}{255, 236, 179}
+\definecolor{darkgreen}{RGB}{0, 100, 0}
+\definecolor{lightgreen}{RGB}{144, 238, 144}
+
+\setbeamercolor{structure}{fg=ugbblue}
+\setbeamercolor{frametitle}{bg=ugbblue, fg=white}
+\setbeamercolor{title}{fg=white}
+\setbeamercolor{subtitle}{fg=ugbgold}
+\setbeamercolor{author}{fg=white}
+\setbeamercolor{institute}{fg=white}
+\setbeamercolor{date}{fg=white}
+\setbeamercolor{block title}{bg=ugbblue, fg=white}
+\setbeamercolor{block body}{bg=lightblue!30}
+\setbeamercolor{alerted text}{fg=ugbgold}
+
+% ── Réduire les marges des blocks ────────────────────────────
+\setlength{\leftmargini}{0.4em}
+\setlength{\leftmarginii}{0.3em}
+
+% ── Pied de page ─────────────────────────────────────────────
+\setbeamertemplate{footline}{
+  \leavevmode
+  \hbox{
+    \begin{beamercolorbox}[wd=.33\paperwidth,
+      ht=2.25ex, dp=1ex, center]{author in head/foot}
+      \usebeamerfont{author in head/foot}
+      \insertshortauthor
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=.34\paperwidth,
+      ht=2.25ex, dp=1ex, center]{title in head/foot}
+      \usebeamerfont{title in head/foot}
+      \insertshorttitle
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[wd=.33\paperwidth,
+      ht=2.25ex, dp=1ex, right]{date in head/foot}
+      \usebeamerfont{date in head/foot}
+      \insertframenumber{} / \inserttotalframenumber
+      \hspace{2ex}
+    \end{beamercolorbox}
+  }
+}
+\setbeamertemplate{navigation symbols}{}
+
+% ── Réduire l'espace vertical dans les listes ────────────────
+\setbeamertemplate{itemize/enumerate body begin}
+  {\small}
+\setbeamertemplate{itemize/enumerate subbody begin}
+  {\footnotesize}
+
+% ── Informations du document ─────────────────────────────────
+\title[Modélisation hybride --- Débits extrêmes]{
+  Modélisation statistique des débits extrêmes\\
+  dans le bassin du fleuve Sénégal\\
+  basée sur une approche hybride de Machine Learning
+}
+\author[Modou \textsc{[Nom]}]{Modou \textsc{[Nom de famille]}}
+\institute[UGB Saint-Louis]{
+  Université Gaston Berger de Saint-Louis\\
+  U.F.R. Sciences Appliquées et Technologie\\
+  Filière : Mathématiques et Applications /
+  Sciences des données\\
+  \vspace{0.2cm}
+  \textbf{Encadré par :} Professeur El Hadji DEME
+}
+\date{Année Universitaire 2024--2025}
+
+% ============================================================
+\begin{document}
+% ============================================================
+
+% ── SLIDE 1 — Page de titre ──────────────────────────────────
+\begin{frame}
+\titlepage
+\end{frame}
+
+% ── SLIDE 2 — Table des matières ─────────────────────────────
+\begin{frame}{Table des Matières}
+\tableofcontents
+\end{frame}
+
+% ============================================================
+\section{Introduction Générale}
+% ============================================================
+
+% ── SLIDE 3 — Contexte et problématique ──────────────────────
+\begin{frame}{Introduction Générale : Contexte et Problématique}
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+  \begin{block}{Le bassin du fleuve Sénégal}
+  \small
+    \begin{itemize}
+      \item Système fluvial transfrontalier :
+            Guinée, Mali, Mauritanie, Sénégal
+      \item \textbf{13 millions} d'habitants concernés
+      \item Régime contrôlé par la mousson
+            ouest-africaine (juin--octobre)
+      \item Barrages Manantali et Diama
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Dynamiques critiques}
+  \small
+    \begin{itemize}
+      \item Instabilité hydroclimatique croissante
+      \item Intensification des crues :
+            \textbf{+40\%} depuis 2000
+      \item Inondations exceptionnelles 2024
+            (Bakel -- Saint-Louis)
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\begin{column}{0.43\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{carte_bassin.png}
+    \caption{\small Bassin du fleuve Sénégal (OMVS)}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 4 — Limites et objectifs ───────────────────────────
+\begin{frame}{Introduction Générale : Limites et Objectifs}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+  \begin{alertblock}{Limites des modèles classiques}
+  \small
+    \begin{itemize}
+      \item GEV/GPD : hypothèse de
+            \textbf{stationnarité} souvent violée
+      \item ML seul : performances limitées
+            sur séries courtes ($n=49$ ans)
+      \item Dynamiques non linéaires
+            mal capturées
+    \end{itemize}
+  \end{alertblock}
+  \vspace{0.1cm}
+  \begin{block}{Solution : approche hybride}
+  \small
+    \begin{itemize}
+      \item EVT : cadre probabiliste rigoureux
+      \item ML : apprentissage non linéaire
+      \item \textbf{RF-GEV} : le meilleur
+            des deux approches
+    \end{itemize}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Objectifs de l'étude}
+  \small
+    \begin{enumerate}
+      \item Analyser les structures temporelles
+            des débits (1971--2019)
+      \item Estimer les niveaux de retour
+            par GEV et GPD
+      \item Évaluer RF et LSTM
+      \item \textbf{Développer le modèle
+            hybride RF-GEV}
+      \item Fournir des estimations pour
+            la gestion des risques
+    \end{enumerate}
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Cadre Hydrologique et Données}
+% ============================================================
+
+% ── SLIDE 5 — Zone d'étude et données ────────────────────────
+\begin{frame}{Cadre Hydrologique : Zone d'Étude et Données}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+  \begin{block}{Quatre stations hydrométriques}
+  \small
+    \begin{tabular}{ll}
+      \toprule
+      \textbf{Station} & \textbf{Position} \\
+      \midrule
+      Daka Saidou & Haut bassin \\
+      Gourbassi   & Haut bassin \\
+      Kidira      & Bassin moyen \\
+      Oualia      & Haut bassin \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Données utilisées}
+  \small
+    \begin{itemize}
+      \item Période : \textbf{1971--2019}
+      \item \textbf{49} années hydrologiques
+            (mai--avril)
+      \item \textbf{17 897} obs. journalières
+            par station
+      \item Source : OMVS
+      \item Imputation NA : moyenne
+            climatologique mensuelle
+    \end{itemize}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{carte_bassin.png}
+    \caption{\small Localisation des stations}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 6 — Statistiques descriptives ──────────────────────
+\begin{frame}{Cadre Hydrologique : Exploration des Données}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Résumé statistique --- débits journaliers
+               (m\textsuperscript{3}/s)}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Station} & \textbf{Moy.} &
+      \textbf{Skew.} & \textbf{Kurt.} &
+      \textbf{CV (\%)} \\
+      \midrule
+      Daka Saidou & 202,7 & 1,616 & 4,822 & 139 \\
+      Gourbassi   & 105,0 & 2,955 & 14,29 & 177 \\
+      Kidira      & 122,6 & 3,532 & 19,39 & 197 \\
+      Oualia      & 117,7 & 3,217 & 18,64 & 172 \\
+      \bottomrule
+    \end{tabular}}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Caractéristiques clés}
+  \small
+    \begin{itemize}
+      \item \textbf{Asymétrie positive} : 1,6 à 3,5
+      \item \textbf{Leptokurticité} très prononcée
+      \item Forte variabilité (CV > 100\%)
+      \item Saisonnalité : juin--octobre
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{series_temporelles.png}
+    \caption{\small Séries temporelles des débits}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 7 — Saisonnalité ───────────────────────────────────
+\begin{frame}{Cadre Hydrologique : Saisonnalité et Prétraitement}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{saisonnalite.png}
+    \caption{\small Distribution mensuelle des débits}
+  \end{figure}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Valeurs manquantes traitées}
+  \small
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Station} & \textbf{NA bruts} &
+      \textbf{NA traités} \\
+      \midrule
+      Daka Saidou & 941   & 0 \\
+      Gourbassi   & 945   & 0 \\
+      Kidira      & 1 829 & 0 \\
+      Oualia      & 1 621 & 0 \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Méthode}
+  \small
+    Imputation par \textbf{moyenne climatologique mensuelle}
+    → 0 NA résiduel → 49 années complètes retenues
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Saisonnalité}
+  \small
+    Pics de crue entre \textbf{juin et octobre}
+    sous l'effet de la mousson ouest-africaine
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Théorie des Valeurs Extrêmes (TVE)}
+% ============================================================
+
+% ── SLIDE 8 — Concepts fondamentaux GEV ──────────────────────
+\begin{frame}{TVE : Concepts Fondamentaux --- Loi GEV}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Modélisation des maxima : Loi GEV}
+  \small
+    Blocs annuels : $M_n = \max(X_1, \ldots, X_n)$
+    \vspace{0.2cm}
+
+    \textbf{Théorème de Gnedenko (1943)} :
+    \begin{equation*}
+      G_\xi(x) = \exp\!\left(-\!\left[1 +
+      \xi\!\left(\frac{x-\mu}{\sigma}
+      \right)\right]^{-1/\xi}\right)
+    \end{equation*}
+    \textbf{Trois paramètres} :
+    $\mu$ (position), $\sigma$ (échelle),
+    $\xi$ (forme)
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Interprétation de $\xi$}
+  \small
+    \begin{tabular}{clc}
+      \toprule
+      \textbf{$\xi$} & \textbf{Loi} &
+      \textbf{Queue} \\
+      \midrule
+      $> 0$ & Fréchet & \textcolor{red}{Lourde} \\
+      $= 0$ & Gumbel  & \textcolor{orange}{Exponentielle} \\
+      $< 0$ & Weibull & \textcolor{darkgreen}{Bornée} \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Méthode des L-moments}
+  \small
+    \textbf{Hosking (1990)} -- choix justifié :
+    \begin{itemize}
+      \item Robustes sur petits échantillons
+            ($n=49 < 100$)
+      \item Recommandés par la WMO
+      \item Résistants aux valeurs aberrantes
+      \item MLE divergeait ($\xi = +6$, absurde)
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Méthode POT --- Loi GPD}
+  \small
+    \begin{itemize}
+      \item Seuil $u$ : 95\textsuperscript{e} percentile
+      \item Déclustering : 7 jours
+      \item $x_T = u + \frac{\sigma}{\xi}
+            \left[(\lambda T)^\xi - 1\right]$
+    \end{itemize}
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 9 — Structures temporelles ────────────────────────
+\begin{frame}{TVE : Structures Temporelles et Stationnarité}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Test de Mann-Kendall}
+  \small
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{Station} & \textbf{$\tau$} &
+      \textbf{p-val} & \textbf{Sen} \\
+      \midrule
+      Daka Saidou &
+      \textcolor{red}{0,195} &
+      \textcolor{red}{0,049} &
+      5,80 \\
+      Gourbassi & 0,188 & 0,058 & -- \\
+      Kidira &
+      \textcolor{red}{\textbf{0,304}} &
+      \textcolor{red}{\textbf{0,002}} &
+      \textbf{16,68} \\
+      Oualia & 0,113 & 0,259 & -- \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Tests ADF et KPSS}
+  \small
+    \begin{itemize}
+      \item \textbf{Kidira} :
+            non-stationnarité \textbf{confirmée}\\
+            ADF $p=0{,}207$ + KPSS $p=0{,}019$
+      \item Autres stations : résultats ambigus
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Implication}
+  \small
+    Kidira : \textbf{+15,27 m³/s/an}
+    → GEV non stationnaire obligatoire
+  \end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{tendance_sen.png}
+    \caption{\small Tendance des maxima annuels ---
+             pente de Sen par station}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 10 — GEV stationnaire ──────────────────────────────
+\begin{frame}{TVE : Modélisation GEV Stationnaire}
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+  \begin{block}{Paramètres GEV (L-moments)}
+  \small
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Station} & \textbf{$\mu$} &
+      \textbf{$\sigma$} & \textbf{$\xi$} &
+      \textbf{AIC} \\
+      \midrule
+      Daka Saidou & 1\,014 & 204 & $-$0,001 & 699,3 \\
+      Gourbassi   & 622    & 317 & $+$0,040  & 721,2 \\
+      Oualia      & 538    & 314 & $-$0,207  & -- \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Niveaux de retour GEV stat. (m³/s)}
+  \small
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Station} & \textbf{T=10} &
+      \textbf{T=50} & \textbf{T=100} & \textbf{T=200} \\
+      \midrule
+      Daka Saidou & 1\,472 & 1\,808 & 1\,949 & 2\,091 \\
+      Gourbassi   & 1\,369 & 1\,962 & 2\,225 & 2\,494 \\
+      Oualia      & 1\,103 & 1\,379 & 1\,470 & 1\,549 \\
+      \bottomrule
+    \end{tabular}}
+  \end{block}
+\end{column}
+\begin{column}{0.46\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{diagnostic_gev_daka_saidou.png}
+    \caption{\small Diagnostics GEV --- Daka Saidou}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 11 — GEV non stationnaire ──────────────────────────
+\begin{frame}{TVE : GEV Non Stationnaire --- Kidira}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+  \begin{block}{Spécification NS}
+  \small
+    $\mu(t) = \mu_0 + \mu_1 \times t$
+    \vspace{0.15cm}
+
+    \textbf{Paramètres estimés} :
+    \begin{itemize}
+      \item $\mu_0 = 794{,}55$ m³/s
+      \item $\mu_1 = \textbf{15{,}27}$ m³/s/an
+      \item $\sigma = 370{,}90$ m³/s
+      \item $\xi = 0{,}076$
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Test LRT}
+  \small
+    \begin{itemize}
+      \item Stat. = 11,08 ; \textbf{p = 0,0009}
+      \item $\Delta$AIC = $-$9,1 points
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Niveaux de retour NS (m³/s)}
+  \small
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{T} & \textbf{1971} & \textbf{2019} \\
+      \midrule
+      10 ans  & 1\,338 & 2\,071 \\
+      100 ans & 2\,470 & \textbf{3\,202} \\
+      200 ans & 2\,845 & 3\,578 \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{diagnostic_gev_ns_kidira.png}
+    \caption{\small Évolution de $\mu(t)$ --- Kidira}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 12 — GPD résultats ─────────────────────────────────
+\begin{frame}{TVE : Résultats GPD --- Modélisation POT}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Paramètres GPD estimés (MLE)}
+  \small
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Station} & \textbf{Seuil} &
+      \textbf{$\lambda$} & \textbf{$\sigma$} &
+      \textbf{$\xi$} \\
+      \midrule
+      Daka Saidou & 810,9 & 1,918 & 287,7 & $-$0,189 \\
+      Gourbassi   & 483,2 & 1,388 & 320,3 & $-$0,054 \\
+      Kidira      & 600,0 & 1,347 & 340,2 & $+$0,183 \\
+      Oualia      & 527,1 & 0,959 & 320,6 & $+$0,196 \\
+      \bottomrule
+    \end{tabular}}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Niveaux de retour GPD (m³/s)}
+  \small
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Station} & \textbf{T=10} &
+      \textbf{T=50} & \textbf{T=100} & \textbf{T=200} \\
+      \midrule
+      Daka Saidou & 1\,462 & 1\,690 & 1\,769 & 1\,838 \\
+      Gourbassi   & 1\,269 & 1\,697 & 1\,870 & 2\,037 \\
+      Kidira      & 1\,733 & 2\,756 & 3\,298 & 3\,914 \\
+      Oualia      & 1\,439 & 2\,384 & 2\,892 & 3\,474 \\
+      \bottomrule
+    \end{tabular}}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{niveaux_retour_gpd.png}
+    \caption{\small Courbes de niveaux de retour GPD}
+  \end{figure}
+  \begin{alertblock}{Constat}
+  \small
+    Kidira et Oualia ($\xi > 0$) :
+    queues \textbf{lourdes} → risque élevé
+    de crues exceptionnelles
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 13 — Comparaison GEV vs GPD ────────────────────────
+\begin{frame}{TVE : Comparaison GEV vs GPD}
+\begin{block}{Niveaux de retour comparés (m\textsuperscript{3}/s)}
+\centering
+\resizebox{0.92\textwidth}{!}{%
+\begin{tabular}{llcccc}
+  \toprule
+  \textbf{Station} & \textbf{Méthode} &
+  \textbf{T=10} & \textbf{T=50} &
+  \textbf{T=100} & \textbf{T=200} \\
+  \midrule
+  \multirow{2}{*}{Daka Saidou}
+    & GEV stat. & 1\,472 & 1\,808 & 1\,949 & 2\,091 \\
+    & GPD       & 1\,462 & 1\,690 & 1\,769 & 1\,838 \\
+  \midrule
+  \multirow{2}{*}{Gourbassi}
+    & GEV stat. & 1\,369 & 1\,962 & 2\,225 & 2\,494 \\
+    & GPD       & 1\,269 & 1\,697 & 1\,870 & 2\,037 \\
+  \midrule
+  \multirow{2}{*}{Kidira}
+    & GEV NS (2019) & 2\,071 & 2\,845 &
+      \textbf{3\,202} & 3\,578 \\
+    & GPD           & 1\,733 & 2\,756 &
+      3\,298 & 3\,914 \\
+  \midrule
+  \multirow{2}{*}{Oualia}
+    & GEV stat. & 1\,103 & 1\,379 & 1\,470 & 1\,549 \\
+    & GPD       & 1\,439 & 2\,384 & 2\,892 & 3\,474 \\
+  \bottomrule
+\end{tabular}}
+\end{block}
+\vspace{0.15cm}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+  \begin{alertblock}{Constats clés}
+  \small
+    \begin{itemize}
+      \item GEV/GPD convergent pour T court
+      \item Divergence forte à Oualia
+            (GEV=1\,470 vs GPD=2\,892)
+      \item Kidira : GEV NS indispensable
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Conclusion EVT}
+  \small
+    Les deux approches sont
+    \textbf{complémentaires} → justifie
+    l'intégration dans le modèle hybride
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Machine Learning}
+% ============================================================
+
+% ── SLIDE 14 — Principes ML ──────────────────────────────────
+\begin{frame}{Machine Learning : Principes et Méthodologie}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Algorithmes mobilisés}
+  \small
+    \begin{itemize}
+      \item \textbf{Random Forest} :
+            ensemble d'arbres réduisant la variance
+      \item \textbf{LSTM} : réseau récurrent
+            pour séries temporelles longues
+      \item \textbf{Modèle naïf} :
+            $\hat{Y}_t = Y_{t-1}$ (baseline)
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Optimisation}
+  \small
+    \textbf{Grid Search} + TimeSeriesSplit
+    (5 folds) :
+    \begin{itemize}
+      \item Respecte l'ordre chronologique
+      \item Évite toute fuite d'information
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Split temporel}
+  \small
+    Train : 1971--2009 (39 ans)\\
+    Test  : 2010--2019 (10 ans)
+  \end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Features construites (8 variables)}
+  \small
+    \begin{tabular}{ll}
+      \toprule
+      \textbf{Feature} & \textbf{Description} \\
+      \midrule
+      annee\_norm & Tendance temporelle \\
+      annee²      & Tendance non linéaire \\
+      lag1        & Débit $t-1$ \\
+      lag2        & Débit $t-2$ \\
+      lag3        & Débit $t-3$ \\
+      moy\_3      & Moy. mobile 3 ans \\
+      moy\_5      & Moy. mobile 5 ans \\
+      std\_3      & Écart-type 3 ans \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 15 — Random Forest résultats ───────────────────────
+\begin{frame}{Machine Learning : Résultats Random Forest}
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+  \begin{block}{Hyperparamètres optimaux}
+  \small
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{Station} & \textbf{N arbres} &
+      \textbf{Prof. max} & \textbf{Min feuille} \\
+      \midrule
+      Daka Saidou & 300 & 3      & 2 \\
+      Gourbassi   & 500 & 3      & 3 \\
+      Kidira      & 100 & Aucune & 2 \\
+      Oualia      & 100 & 5      & 2 \\
+      \bottomrule
+    \end{tabular}}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Performances Train / Test}
+  \small
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lcccc}
+      \toprule
+      \textbf{Station} &
+      \multicolumn{2}{c}{\textbf{Train}} &
+      \multicolumn{2}{c}{\textbf{Test}} \\
+      & RMSE & MAPE & RMSE & MAPE \\
+      \midrule
+      Daka Saidou & 135 & 10,9\% & 413 & 29,5\% \\
+      Gourbassi   & 235 & 36,9\% & 550 & 46,3\% \\
+      Kidira      & 254 & 30,4\% & 909 & 42,3\% \\
+      Oualia      & 307 & 38,9\% & 603 & 105,4\% \\
+      \bottomrule
+    \end{tabular}}
+  \end{block}
+\end{column}
+\begin{column}{0.46\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{rf_importance_variables.png}
+    \caption{\small Importance des variables --- RF}
+  \end{figure}
+  \begin{alertblock}{Constat}
+  \small
+    \textbf{lag1} dominant → forte persistance
+    temporelle des débits maximaux
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 16 — LSTM architecture et résultats ────────────────
+\begin{frame}{Machine Learning : LSTM --- Architecture et Résultats}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+  \begin{block}{Architecture (32 033 paramètres)}
+  \small
+    \begin{tabular}{lc}
+      \toprule
+      \textbf{Couche} & \textbf{Paramètres} \\
+      \midrule
+      LSTM (64) + BatchNorm + Drop(0,3) & 18\,944 \\
+      LSTM (32) + BatchNorm + Drop(0,2) & 12\,544 \\
+      Dense (16, ReLU) + Drop(0,1)      & 528 \\
+      Dense (1)                         & 17 \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Performances LSTM (Test)}
+  \small
+    \begin{tabular}{lcc}
+      \toprule
+      \textbf{Station} & \textbf{RMSE} & \textbf{MAPE} \\
+      \midrule
+      Daka Saidou & 627 & 46,6\% \\
+      Gourbassi   & 589 & 47,8\% \\
+      Kidira      & 890 & \textbf{36,4\%} \\
+      Oualia      & 965 & 171,0\% \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \begin{alertblock}{Meilleur résultat}
+  \small
+    Kidira : MAPE \textbf{36,4\%} vs Naïf 61,3\%
+    → \textbf{$-$42\%}
+  \end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{lstm_predictions.png}
+    \caption{\small LSTM --- observé vs prédit (2010--2019)}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 17 — Comparaison ML ─────────────────────────────────
+\begin{frame}{Machine Learning : Comparaison des Performances}
+\begin{block}{RMSE et MAPE --- Naïf vs RF vs LSTM (jeu de test 2010--2019)}
+\centering
+\small
+\begin{tabular}{lcccccc}
+  \toprule
+  \textbf{Station} &
+  \multicolumn{2}{c}{\textbf{Naïf}} &
+  \multicolumn{2}{c}{\textbf{RF}} &
+  \multicolumn{2}{c}{\textbf{LSTM}} \\
+  & RMSE & MAPE & RMSE & MAPE & RMSE & MAPE \\
+  \midrule
+  Daka Saidou &
+  \textbf{284} & \textbf{22\%} &
+  413 & 29\% & 627 & 47\% \\
+  Gourbassi &
+  \textbf{427} & 60\% &
+  550 & \textbf{46\%} & 589 & 48\% \\
+  Kidira &
+  \textbf{649} & 61\% &
+  909 & 42\% & 890 & \textbf{36\%} \\
+  Oualia &
+  702 & 78\% &
+  \textbf{603} & \textbf{105\%} &
+  965 & 171\% \\
+  \bottomrule
+\end{tabular}
+\end{block}
+\vspace{0.15cm}
+\begin{columns}
+\begin{column}{0.5\textwidth}
+  \begin{alertblock}{Constats clés}
+  \small
+    \begin{itemize}
+      \item Naïf meilleur RMSE : \textbf{3/4 stations}
+      \item LSTM meilleur MAPE : Kidira ($-$42\%)
+      \item RF meilleur RMSE : Oualia
+      \item Aucun ML ne domine systématiquement
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Explication}
+  \small
+    \begin{itemize}
+      \item $n = 49$ ans → trop court pour ML seul
+      \item Pas de variables climatiques exogènes
+      \item Surapprentissage partiel
+      \item \textbf{→ Nécessité du modèle hybride}
+    \end{itemize}
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Modèle Hybride RF-GEV}
+% ============================================================
+
+% ── SLIDE 18 — Architecture hybride ──────────────────────────
+\begin{frame}{Modèle Hybride RF-GEV : Architecture}
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+  \begin{alertblock}{Motivation}
+  \small
+    \begin{itemize}
+      \item ML seul : performances limitées
+      \item GEV seul : stationnarité souvent violée
+      \item \textbf{Hybride} : combine les deux
+    \end{itemize}
+  \end{alertblock}
+  \vspace{0.1cm}
+  \begin{block}{Spécification RF-GEV}
+    \begin{equation*}
+      \mu(t) = \beta_0 + \beta_1\hat{Q}_{RF}(t)
+      + \beta_2\text{Année}(t)
+    \end{equation*}
+    \begin{equation*}
+      \log\sigma(t) = \gamma_0 + \gamma_1\hat{Q}_{RF}(t)
+    \end{equation*}
+    \begin{equation*}
+      \xi = \text{constant}
+    \end{equation*}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Procédure hors échantillon}
+  \small
+    $\hat{Q}_{RF}(t)$ obtenu par
+    \textbf{TimeSeriesSplit (5 folds)}\\
+    → Garantit l'absence de fuite d'information
+  \end{block}
+\end{column}
+\begin{column}{0.44\textwidth}
+\begin{center}
+\begin{tikzpicture}[
+  node distance=0.35cm,
+  box/.style={rectangle, rounded corners,
+              draw=ugbblue, fill=lightblue!30,
+              text width=2.8cm, align=center,
+              font=\small, minimum height=0.65cm}
+]
+\node[box] (feat) {Features\\hydrologiques};
+\node[box, below=of feat] (rf)
+  {Random Forest\\(hors échantillon)};
+\node[box, below=of rf,
+      fill=lightgold, draw=ugbgold] (qrf)
+  {$\hat{Q}_{RF}(t)$ covariable};
+\node[box, below=of qrf] (gev)
+  {GEV non stationnaire\\(MLE)};
+\node[box, below=of gev,
+      fill=lightgreen, draw=darkgreen]
+  (nr) {Niveaux de retour\\hybrides};
+
+\draw[->, thick, ugbblue] (feat) -- (rf);
+\draw[->, thick, ugbgold] (rf)   -- (qrf);
+\draw[->, thick, ugbblue] (qrf)  -- (gev);
+\draw[->, thick, darkgreen] (gev) -- (nr);
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 19 — Paramètres estimés ────────────────────────────
+\begin{frame}{Modèle Hybride : Paramètres Estimés}
+\begin{columns}[T]
+\begin{column}{0.55\textwidth}
+  \begin{block}{Paramètres du modèle RF-GEV}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lcccccc}
+      \toprule
+      \textbf{Station} &
+      \textbf{$\beta_0$} &
+      \textbf{$\beta_1$} &
+      \textbf{$\beta_2$} &
+      \textbf{$\gamma_0$} &
+      \textbf{$\gamma_1$} &
+      \textbf{$\xi$} \\
+      \midrule
+      Daka Saidou & 757,5 & $-$1,7 & $-$0,7 &
+      6,21 & 0,19 & \textcolor{darkgreen}{$-$0,490} \\
+      Gourbassi & 698,2 & $-$213,0 & 278,6 &
+      5,59 & 0,36 & \textcolor{darkgreen}{$-$0,149} \\
+      Kidira & 982,1 & $-$449,4 & 701,5 &
+      5,81 & 0,20 & \textcolor{darkgreen}{$-$0,173} \\
+      Oualia & 597,9 & 53,6 & $-$4,0 &
+      5,76 & 0,08 & \textcolor{red}{$+$0,238} \\
+      \bottomrule
+    \end{tabular}}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Corrélation RF-OOS / Observé}
+  \small
+    \begin{tabular}{lc}
+      \toprule
+      \textbf{Station} & \textbf{Corrélation} \\
+      \midrule
+      Daka Saidou & 0,270 \\
+      Gourbassi   & 0,253 \\
+      Kidira      & \textbf{0,390} \\
+      Oualia      & 0,126 \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+\end{column}
+\begin{column}{0.43\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{hybride_parametres_temporels.png}
+    \caption{\small Évolution de $\mu(t)$ et $\sigma(t)$}
+  \end{figure}
+  \begin{alertblock}{Interprétation $\xi$}
+  \small
+    $\xi < 0$ : Daka, Gourbassi, Kidira
+    → queue \textbf{bornée}\\
+    $\xi > 0$ : Oualia → queue \textbf{lourde}
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 20 — Comparaison AIC ───────────────────────────────
+\begin{frame}{Modèle Hybride : Comparaison AIC}
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+  \begin{block}{Gain AIC : GEV stat. vs Hybride RF-GEV}
+  \small
+    \begin{tabular}{lccc}
+      \toprule
+      \textbf{Station} &
+      \textbf{GEV stat.} &
+      \textbf{Hybride} &
+      \textbf{$\Delta$AIC} \\
+      \midrule
+      Daka Saidou & 699,3 & 490,2 &
+      \textcolor{darkgreen}{\textbf{$-$209,1}} \\
+      Gourbassi & 721,2 & 479,8 &
+      \textcolor{darkgreen}{\textbf{$-$241,4}} \\
+      Kidira & -- & 493,6 & -- \\
+      Oualia & -- & 505,0 & -- \\
+      \bottomrule
+    \end{tabular}
+    \vspace{0.2cm}
+
+    \footnotesize $|\Delta\text{AIC}| > 10$ =
+    amélioration substantielle
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Conclusion}
+  \small
+    Gains de \textbf{209,1} et \textbf{241,4} points
+    → Le modèle hybride améliore
+    \textbf{significativement} l'ajustement GEV
+    pour Daka Saidou et Gourbassi
+  \end{alertblock}
+\end{column}
+\begin{column}{0.46\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{hybride_qqplot.png}
+    \caption{\small QQ-plot résidus standardisés ---
+             modèle hybride}
+  \end{figure}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 21 — Niveaux de retour hybrides ────────────────────
+\begin{frame}{Modèle Hybride : Niveaux de Retour (2019)}
+\begin{block}{Niveaux de retour hybrides RF-GEV (m\textsuperscript{3}/s)}
+\centering
+\small
+\begin{tabular}{lcccccc}
+  \toprule
+  \textbf{Station} &
+  \textbf{$\mu$(2019)} &
+  \textbf{$\sigma$(2019)} &
+  \textbf{T=10} & \textbf{T=50} &
+  \textbf{T=100} & \textbf{T=200} \\
+  \midrule
+  Daka Saidou & 756,5 & 481,4 &
+  1\,413 & 1\,594 &
+  \textcolor{ugbgold}{\textbf{1\,636}} & 1\,666 \\
+  Gourbassi & 966,1 & 374,2 &
+  1\,682 & 2\,074 &
+  \textcolor{ugbgold}{\textbf{2\,212}} & 2\,337 \\
+  Kidira & 1\,340,2 & 485,1 &
+  2\,245 & 2\,717 &
+  \textcolor{ugbgold}{\textbf{2\,879}} & 3\,023 \\
+  Oualia & 594,2 & 317,8 &
+  1\,541 & 2\,640 &
+  \textcolor{ugbgold}{\textbf{3\,252}} & 3\,972 \\
+  \bottomrule
+\end{tabular}
+\end{block}
+\vspace{0.15cm}
+\begin{columns}
+\begin{column}{0.55\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{hybride_niveaux_retour.png}
+    \caption{\small Courbes hybride vs GEV stationnaire}
+  \end{figure}
+\end{column}
+\begin{column}{0.43\textwidth}
+  \begin{alertblock}{Points clés}
+  \small
+    \begin{itemize}
+      \item Estimations conditionnelles à \textbf{2019}
+      \item Intègre l'état hydrologique récent
+      \item Cohérent avec GEV NS (Kidira)
+      \item Plus flexible que GEV stat.
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 22 — Comparaison complète tous modèles ─────────────
+\begin{frame}{Modèle Hybride : Comparaison Complète}
+\begin{block}{Niveaux de retour $T=100$ ans
+             (m\textsuperscript{3}/s)}
+\centering
+\small
+\begin{tabular}{lcccc}
+  \toprule
+  \textbf{Station} &
+  \textbf{GEV stat.} &
+  \textbf{GPD} &
+  \textbf{GEV NS} &
+  \textbf{Hybride RF-GEV} \\
+  \midrule
+  Daka Saidou & 1\,949 & 1\,769 & -- &
+  \textcolor{ugbgold}{\textbf{1\,636}} \\
+  Gourbassi & 2\,225 & 1\,870 & -- &
+  \textcolor{ugbgold}{\textbf{2\,212}} \\
+  Kidira & -- & 3\,298 & 3\,202 &
+  \textcolor{ugbgold}{\textbf{2\,879}} \\
+  Oualia & 1\,470 & 2\,892 & -- &
+  \textcolor{ugbgold}{\textbf{3\,252}} \\
+  \bottomrule
+\end{tabular}
+\end{block}
+\vspace{0.15cm}
+\begin{columns}
+\begin{column}{0.55\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{comparaison_tous_modeles_nr.png}
+    \caption{\small Comparaison des courbes de niveaux
+             de retour par méthode}
+  \end{figure}
+\end{column}
+\begin{column}{0.43\textwidth}
+  \begin{alertblock}{Constats}
+  \small
+    \begin{itemize}
+      \item GEV/GPD convergent pour T court
+      \item Hybride Kidira :
+            estimations \textbf{conservatrices}
+      \item Oualia : hybride produit les
+            estimations \textbf{les plus élevées}
+      \item Hybride intègre la dynamique récente
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Résultats et Discussion}
+% ============================================================
+
+% ── SLIDE 23 — Synthèse résultats EVT ────────────────────────
+\begin{frame}{Résultats et Discussion : Synthèse EVT}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Résultats GEV}
+  \small
+    \begin{itemize}
+      \item Non-stationnarité confirmée à
+            \textbf{Kidira} ($p=0{,}002$)
+      \item GEV NS : $+15{,}27$ m³/s/an
+      \item Niveaux centenaux :
+            1\,949--3\,202 m³/s
+      \item L-moments : estimateurs robustes
+            sur $n=49$
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{block}{Résultats GPD}
+  \small
+    \begin{itemize}
+      \item Niveaux centenaux :
+            1\,769--3\,298 m³/s
+      \item $\xi < 0$ : Daka, Gourbassi
+            (queues bornées)
+      \item $\xi > 0$ : Kidira, Oualia
+            (queues lourdes)
+      \item Forte divergence à Oualia
+            vs GEV stat.
+    \end{itemize}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{alertblock}{Résultats Hybride RF-GEV}
+  \small
+    \begin{itemize}
+      \item \textbf{Gain AIC = $-$209,1}
+            (Daka Saidou)
+      \item \textbf{Gain AIC = $-$241,4}
+            (Gourbassi)
+      \item Niveaux de retour 2019 :
+            \begin{itemize}\small
+              \item Daka : 1\,636 m³/s
+              \item Gourbassi : 2\,212
+              \item Kidira : 2\,879
+              \item Oualia : 3\,252
+            \end{itemize}
+      \item Cadre plus flexible et réaliste
+    \end{itemize}
+  \end{alertblock}
+  \vspace{0.1cm}
+  \begin{block}{Application}
+  \small
+    Base pour la gestion des risques
+    d'inondation dans le bassin du
+    fleuve Sénégal
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 24 — Synthèse résultats ML ─────────────────────────
+\begin{frame}{Résultats et Discussion : Synthèse ML}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{figure}
+    \includegraphics[width=\textwidth]{comparaison_metriques_ml.png}
+    \caption{\small Comparaison RMSE et MAPE ---
+             Naïf vs RF vs LSTM}
+  \end{figure}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Métriques EVT (AIC)}
+  \small
+    \begin{tabular}{lc}
+      \toprule
+      \textbf{Modèle} & \textbf{AIC} \\
+      \midrule
+      GEV stat. & 699,3 -- 756,2 \\
+      GEV NS (Kidira) & 747,1 \\
+      GPD & 658,8 -- 1\,220,8 \\
+      \textbf{Hybride} & \textbf{479,8 -- 505,0} \\
+      \bottomrule
+    \end{tabular}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Message clé}
+  \small
+    EVT et ML répondent à des
+    \textbf{objectifs distincts et complémentaires} :
+    \begin{itemize}
+      \item EVT → niveaux de retour probabilistes
+      \item ML → prédiction temporelle
+      \item \textbf{Hybride → les deux}
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Conclusion \& Recommandations}
+% ============================================================
+
+% ── SLIDE 25 — Limites ───────────────────────────────────────
+\begin{frame}{Limites de l'Étude}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{alertblock}{Limites méthodologiques}
+    \begin{itemize}
+      \item \textbf{Taille de l'échantillon}
+            ($n = 49$ années) → contrainte
+            pour le ML
+      \item \textbf{Absence de variables
+            climatiques} exogènes
+            (précipitations, ENSO, NAO)
+      \item \textbf{Surapprentissage ML}
+            partiel observé
+      \item Imputation NA par moyenne
+            mensuelle → lissage léger
+            de la variabilité
+    \end{itemize}
+  \end{alertblock}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{alertblock}{Limites de comparaison}
+    \begin{itemize}
+      \item EVT et ML ont des objectifs
+            \textbf{différents} :
+            \begin{itemize}
+              \item EVT → extrêmes rares
+              \item ML → prédiction future
+            \end{itemize}
+      \item La comparaison directe
+            n'est pas toujours pertinente
+      \item AIC GEV non disponible pour
+            Kidira NS et Oualia
+            (modèles différents)
+    \end{itemize}
+  \end{alertblock}
+  \vspace{0.1cm}
+  \begin{block}{Perspective immédiate}
+  \small
+    Intégration de données pluviométriques
+    pour enrichir les covariables du
+    modèle hybride
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 26 — Perspectives ──────────────────────────────────
+\begin{frame}{Perspectives de Recherche}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Court terme}
+    \begin{itemize}
+      \item Intégration de variables
+            climatiques \textbf{ENSO/NAO}
+            comme covariables
+      \item Extension de la période
+            d'étude \textbf{au-delà de 2020}
+      \item Validation sur d'autres
+            bassins sahéliens
+    \end{itemize}
+  \end{block}
+  \vspace{0.2cm}
+  \begin{block}{Moyen terme}
+    \begin{itemize}
+      \item Architecture hybride
+            \textbf{LSTM-GEV}
+      \item Modèle multi-sites
+            (4 stations simultanément)
+      \item Incertitude bootstrap
+            sur les niveaux de retour
+    \end{itemize}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Long terme -- Applications}
+    \begin{itemize}
+      \item \textbf{Dimensionnement} des
+            ouvrages hydrauliques
+      \item Système d'alerte précoce
+            aux crues
+      \item Planification de la gestion
+            de l'eau par l'\textbf{OMVS}
+      \item Modélisation des impacts
+            du changement climatique
+    \end{itemize}
+  \end{block}
+  \vspace{0.1cm}
+  \begin{alertblock}{Impact attendu}
+  \small
+    Les niveaux de retour hybrides
+    constituent une base précieuse
+    pour la \textbf{réduction de la
+    vulnérabilité} des populations
+    riveraines du fleuve Sénégal
+  \end{alertblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 27 — Conclusion ────────────────────────────────────
+\begin{frame}{Conclusion Générale}
+\begin{columns}[T]
+\begin{column}{0.52\textwidth}
+  \begin{block}{Bilan de l'étude}
+    \begin{enumerate}
+      \item \textbf{Non-stationnarité}
+            confirmée à Kidira\\
+            → GEV NS nécessaire et justifiée
+      \item \textbf{GEV/GPD} : niveaux de
+            retour robustes (1\,769--3\,298 m³/s)
+      \item \textbf{ML} : performances
+            limitées sur $n=49$ ans
+      \item \textbf{Hybride RF-GEV} :
+            gains AIC significatifs\\
+            ($-$209,1 et $-$241,4 points)
+      \item Cadre de modélisation
+            \textbf{original et flexible}
+    \end{enumerate}
+  \end{block}
+\end{column}
+\begin{column}{0.46\textwidth}
+  \begin{alertblock}{Contribution originale}
+    Modèle hybride RF-GEV :
+    \begin{itemize}
+      \item Combine apprentissage non
+            linéaire (RF) et cadre
+            probabiliste des extrêmes (GEV)
+      \item Validation temporelle hors
+            échantillon rigoureuse
+      \item Estimations conditionnelles
+            à l'état hydrologique récent
+    \end{itemize}
+  \end{alertblock}
+  \vspace{0.2cm}
+  \begin{block}{Application directe}
+  \small
+    Outil opérationnel pour la gestion
+    des risques d'inondation dans le
+    bassin du fleuve Sénégal
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 28 — Recommandations ───────────────────────────────
+\begin{frame}{Recommandations}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+  \begin{block}{Pour la recherche}
+    \begin{itemize}
+      \item Enrichir les modèles avec des
+            \textbf{données climatiques}
+            (précipitations, ENSO, NAO)
+      \item Explorer l'architecture
+            \textbf{LSTM-GEV} hybride
+      \item Étendre l'étude à d'autres
+            bassins de la sous-région
+      \item Quantifier l'incertitude
+            par bootstrap paramétrique
+    \end{itemize}
+  \end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+  \begin{block}{Pour la gestion des risques}
+    \begin{itemize}
+      \item Utiliser les niveaux de retour
+            hybrides pour le
+            \textbf{dimensionnement} des
+            ouvrages hydrauliques
+      \item Intégrer le modèle dans un
+            \textbf{système d'alerte précoce}
+            piloté par l'OMVS
+      \item Mettre à jour les estimations
+            avec les données post-2020
+      \item Développer des cartes de
+            \textbf{risques d'inondation}
+            par période de retour
+    \end{itemize}
+  \end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ── SLIDE 29 — Merci ─────────────────────────────────────────
+\begin{frame}{}
+\begin{center}
+  \vspace{0.5cm}
+  {\Large\textcolor{ugbblue}{\textbf{Merci de votre attention !}}}
+
+  \vspace{0.8cm}
+  {\large\textcolor{ugbgold}{\textbf{Questions ?}}}
+
+  \vspace{1cm}
+  \begin{columns}
+  \begin{column}{0.5\textwidth}
+    \begin{block}{Travaux cités}
+    \small
+      \begin{itemize}
+        \item Coles (2001), Hosking (1990)
+        \item WMO (2009)
+        \item Breiman (2001), Hochreiter (1997)
+        \item Reichstein et al. (2019)
+        \item Burnham \& Anderson (2002)
+      \end{itemize}
+    \end{block}
+  \end{column}
+  \begin{column}{0.45\textwidth}
+    \begin{block}{Contact}
+    \small
+      \textbf{Modou [Nom de famille]}\\
+      Université Gaston Berger\\
+      Saint-Louis, Sénégal\\
+      \vspace{0.2cm}
+      Directeur : Pr. El Hadji DEME\\
+      Co-enc. : Dr. Sadibou Aïdara
+    \end{block}
+  \end{column}
+  \end{columns}
+\end{center}
+\end{frame}
+
+% ============================================================
+\end{document}
